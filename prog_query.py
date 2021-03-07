@@ -76,10 +76,12 @@ header = create_table()
 
 
 def insert_from_csv(f, year, conn, cursor, time_file):
-
+    
+    
+    # Починаємо відлік часу на обродку даних з файлів
     start_time = time.time()
 
-
+    #відкриваємо файл та считуємо дані через ";" считуємо дані порціями по 50 рядків
     with open(f, "r", encoding="cp1251") as csv_file:
         print(f + ' ...' )
         csv_reader = csv.DictReader(csv_file, delimiter=';')
@@ -95,7 +97,7 @@ def insert_from_csv(f, year, conn, cursor, time_file):
                 for row in csv_reader:
                     count += 1
 
-                    # обробляємо запис, для знаходження середнього необхідний запис чисел через крапку
+        # обробляємо запис, для знаходження середнього необхідний запис чисел через крапку
                     for key in row:
                         if row[key] == 'null':
                             pass
@@ -104,7 +106,6 @@ def insert_from_csv(f, year, conn, cursor, time_file):
                         elif 'ball100' in key.lower():
                             row[key] = row[key].replace(',', '.')
                     insert_query += '\n\t(' + str(year) + ', ' + ','.join(row.values()) + '),'
-
                     if count == batch_size:
                         count = 0
                         insert_query = insert_query.rstrip(',') + ';'
@@ -127,29 +128,39 @@ def insert_from_csv(f, year, conn, cursor, time_file):
                     connection_restored = False
                     while not connection_restored:
                         try:
+                            
                             # намагаємось підключитись до бази даних
+                            # за допомогою попередньо написаної функції  'create_connection'
                             conn = create_connection("postgres", "postgres", "admin", "localhost")
                             cursor = conn.cursor()
                             time_file.write(str(datetime.datetime.now()) + " - відновлення з'єднання\n")
                             connection_restored = True
+                        # у випадку помилки OperationalError
                         except psycopg2.OperationalError:
                             pass
 
                     print("З'єднання відновлено!")
                     csv_file.seek(0,0)
-                    csv_reader = itertools.islice(csv.DictReader(csv_file, delimiter=';'), 
-                        batches_inserted * batch_size, None)
+                    csv_reader = itertools.islice(csv.DictReader(csv_file, delimiter=';'), batches_inserted * batch_size, None)
 
+     
+    
+    #Записуємо у файл скільки часу було витрачено на обробку даних із файлів              
     end_time = time.time() - start_time
     time_file.write(str(end_time) + "сек. - файл "+ f + " оброблено\n")
 
     return conn, cursor
 
-
+# відкриваємо файл для того щоб здійснити запис
 time_file = open('time.txt', 'w')
+
+
+# під час виклику функції реалізовується запис тривалості опрацювання у файл time.txt 
+# окремо 2019 і 2020 роки
 conn, cursor = insert_from_csv("Odata2019File.csv", 2019, conn, cursor, time_file)
 conn, cursor = insert_from_csv("Odata2020File.csv", 2020, conn, cursor, time_file)
 
+# Закриваємо файл після запису
 time_file.close()
 
 
