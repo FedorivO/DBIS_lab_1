@@ -88,9 +88,10 @@ def insert_data(f, year, conn, cursor, time_file):
             try:
                 insert_query = '''INSERT INTO zno_data (year, ''' + ', '.join(header) + ') VALUES '
                 count = 0
+                
+                #проходимось по рядках
                 for row in csv_reader:
                     count += 1
-
         # обробляємо запис, для знаходження середнього необхідний запис чисел через крапку
                     for i in row:
 
